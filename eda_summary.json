@@ -1,0 +1,37 @@
+{
+  "total_samples": 50425,
+  "n_categories": 4,
+  "class_distribution": {
+    "Household": 19313,
+    "Books": 11820,
+    "Electronics": 10621,
+    "Clothing & Accessories": 8671
+  },
+  "class_distribution_pct": {
+    "Household": 38.3,
+    "Books": 23.44,
+    "Electronics": 21.06,
+    "Clothing & Accessories": 17.2
+  },
+  "text_length_stats": {
+    "count": 50424.0,
+    "mean": 717.0350626685705,
+    "std": 981.8615937487752,
+    "min": 4.0,
+    "25%": 219.0,
+    "50%": 488.0,
+    "75%": 956.0,
+    "max": 50791.0
+  },
+  "duplicates": 22622,
+  "missing_values": {
+    "category": 0,
+    "description": 1,
+    "text_length": 1,
+    "word_count": 1,
+    "has_html": 0,
+    "has_url": 0,
+    "special_chars_count": 1,
+    "text_length_log": 1
+  }
+}

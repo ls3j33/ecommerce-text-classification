@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+*.csv
+!requirements.txt
+
+# Models (слишком большие для GitHub)
+models/*.pkl
+models/*.joblib
+models/*.h5
+models/*.safetensors
+models/best_distilbert/
+models/*.json
+!models/.gitkeep
+models/tuning_results.csv
+
+# Logs
+*.log
+
+# Temporary training results
+notebooks/results*/
+notebooks/final_eval/
+notebooks/logs*/
