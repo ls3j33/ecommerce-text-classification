@@ -8,7 +8,35 @@ import numpy as np
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from nltk.tag import pos_tag
 from sklearn.base import BaseEstimator, TransformerMixin
+
+# Скачиваем ресурсы nltk один раз при импорте модуля
+import logging
+
+logger = logging.getLogger(__name__)
+
+_nltk_resources = [
+    ('stopwords', 'корпуса стоп-слов'),
+    ('wordnet', 'лексической базы WordNet'),
+    ('omw-1.4', 'расширения OMW'),
+]
+
+# Загружаем POS-теггер (в новых версиях NLTK используется averaged_perceptron_tagger_eng)
+for resource, desc in _nltk_resources:
+    try:
+        nltk.download(resource, quiet=True)
+    except Exception as e:
+        logger.warning(f"Не удалось загрузить {desc} ({resource}): {e}")
+
+# Отдельно загружаем POS-теггер с обработкой разных версий NLTK
+try:
+    nltk.download('averaged_perceptron_tagger', quiet=True)
+except Exception:
+    try:
+        nltk.download('averaged_perceptron_tagger_eng', quiet=True)
+    except Exception as e:
+        logger.warning(f"Не удалось загрузить POS-теггер: {e}")
 
 
 class TextCleaner(BaseEstimator, TransformerMixin):
@@ -42,13 +70,6 @@ class TextCleaner(BaseEstimator, TransformerMixin):
 
     def fit(self, X, y=None):
         """Трансформер не требует обучения."""
-        if self.remove_stopwords or self.lemmatize:
-            try:
-                nltk.download('stopwords', quiet=True)
-                nltk.download('wordnet', quiet=True)
-                nltk.download('omw-1.4', quiet=True)
-            except:
-                pass
         return self
 
     def transform(self, X):
@@ -96,41 +117,37 @@ class TextCleaner(BaseEstimator, TransformerMixin):
             try:
                 stop_words = set(stopwords.words('english'))
                 tokens = [t for t in tokens if t not in stop_words]
-            except:
-                pass
+            except Exception as e:
+                logger.warning(f"Не удалось удалить стоп-слова: {e}")
 
-        # Лемматизация
+        # Лемматизация с использованием pos_tag для определения части речи
         if self.lemmatize:
             try:
                 lemmatizer = WordNetLemmatizer()
-                tokens = [lemmatizer.lemmatize(t) for t in tokens]
-            except:
-                pass
+                # Определяем части речи для токенов (используем стандартный tagset)
+                pos_tags = pos_tag(tokens)
+                # Функция для конвертации penn treebank tag в wordnet tag
+                def get_wordnet_pos(treebank_tag):
+                    if treebank_tag.startswith('NN'):
+                        return 'n'  # существительное
+                    elif treebank_tag.startswith('VB'):
+                        return 'v'  # глагол
+                    elif treebank_tag.startswith('JJ'):
+                        return 'a'  # прилагательное
+                    elif treebank_tag.startswith('RB'):
+                        return 'r'  # наречие
+                    else:
+                        return 'n'  # по умолчанию существительное
+                # Лемматизация с правильной частью речи
+                tokens = [lemmatizer.lemmatize(t, get_wordnet_pos(pos)) for t, pos in pos_tags]
+            except Exception as e:
+                logger.warning(f"Не удалось выполнить лемматизацию: {e}")
 
         return ' '.join(tokens)
 
     def get_feature_names_out(self, input_features=None):
         """Для совместимости с Pipeline."""
         return ['description']
-
-
-class TextLengthExtractor(BaseEstimator, TransformerMixin):
-    """
-    Трансформер для извлечения длины текста.
-    Может использоваться как дополнительная фича.
-    """
-
-    def __init__(self):
-        pass
-
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        """Извлечение длины текста."""
-        if isinstance(X, list):
-            return np.array([len(text) for text in X]).reshape(-1, 1)
-        return X.str.len().values.reshape(-1, 1)
 
 
 class CombinedFeatures(BaseEstimator, TransformerMixin):
@@ -150,12 +167,13 @@ class CombinedFeatures(BaseEstimator, TransformerMixin):
             X_clean = self.text_cleaner.transform(X)
         else:
             X_clean = X
-        self.tfidf_vectorizer.fit(X_clean)
         
+        self.tfidf_vectorizer.fit(X_clean)
+
         # Вычислить и сохранить статистику для нормализации длины
         X_len = np.array([len(text) for text in X_clean]).reshape(-1, 1)
         self.len_mean = X_len.mean()
-        self.len_std = X_len.std()
+        self.len_std = X_len.std() if X_len.std() > 0 else 1.0  # Защита от деления на 0
         return self
 
     def transform(self, X):
@@ -163,6 +181,7 @@ class CombinedFeatures(BaseEstimator, TransformerMixin):
             X_clean = self.text_cleaner.transform(X)
         else:
             X_clean = X
+        
         X_tfidf = self.tfidf_vectorizer.transform(X_clean)
         X_len = np.array([len(text) for text in X_clean]).reshape(-1, 1)
         # Нормализация с использованием статистики из fit()

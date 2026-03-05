@@ -31,13 +31,21 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     - Удаление дубликатов
     - Удаление пропусков
     - Нормализация текста (базовая)
-    
+
     Args:
         df: Исходный DataFrame
-        
+
     Returns:
         Обработанный DataFrame
+    
+    Raises:
+        ValueError: Если DataFrame пустой или все строки удалены
     """
+    if df is None or len(df) == 0:
+        raise ValueError("DataFrame пустой")
+    
+    original_len = len(df)
+    
     # Удаление дубликатов
     df = df.drop_duplicates()
     
@@ -46,6 +54,13 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     
     # Базовая очистка текста
     df['description'] = df['description'].astype(str)
+    
+    if len(df) == 0:
+        raise ValueError("Все строки удалены при предобработке")
+    
+    removed_count = original_len - len(df)
+    if removed_count > 0:
+        print(f"Удалено {removed_count} строк ({100*removed_count/original_len:.1f}%)")
     
     return df
 
