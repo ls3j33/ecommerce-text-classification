@@ -23,9 +23,16 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+.env.local
 
 # Jupyter Notebook
-.ipynb_checkpoints
+.ipynb_checkpoints/
 
 # IDEs
 .vscode/
@@ -38,24 +45,44 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# Data
+# Data (большие файлы)
 *.csv
 !requirements.txt
+data/raw/
+data/processed/
+data/external/
 
-# Models (слишком большие для GitHub)
+# Models (большие файлы)
 models/*.pkl
 models/*.joblib
 models/*.h5
+models/*.pt
+models/*.bin
 models/*.safetensors
+models/*.onnx
 models/best_distilbert/
-models/*.json
-!models/.gitkeep
+models/best_lgb_model.pkl
+models/best_lr_pipeline.pkl
+models/best_svm_pipeline.pkl
+models/lgb_vectorizer.pkl
 models/tuning_results.csv
+models/registry/v*/
+models/registry/*.json
+models/registry/current
 
 # Logs
 *.log
+logs/
 
 # Temporary training results
 notebooks/results*/
 notebooks/final_eval/
 notebooks/logs*/
+
+# Docker build artifacts
+*.tar
+
+# ML flow
+mlruns/
+runs/
+experiments/

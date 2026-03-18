@@ -1,0 +1,40 @@
+# Dockerfile для Inference сервиса
+FROM python:3.11-slim
+
+# Рабочая директория
+WORKDIR /app
+
+# Переменные окружения
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Установка системных зависимостей
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Установка uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Копирование файлов проекта
+COPY pyproject.toml uv.lock* ./
+
+# Установка зависимостей через uv
+RUN uv sync --frozen --no-dev
+
+# Копирование исходного кода
+COPY src/ ./src/
+
+# Копирование .env файла (опционально, можно монтировать через volume)
+COPY .env* ./
+
+# Создание директорий для данных и моделей
+RUN mkdir -p data/raw data/processed models/registry
+
+# Порт сервиса
+EXPOSE 8000
+
+# Команда запуска
+CMD ["uv", "run", "python", "-m", "uvicorn", "src.inference.main:app", "--host", "0.0.0.0", "--port", "8000"]

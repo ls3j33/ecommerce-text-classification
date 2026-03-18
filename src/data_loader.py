@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from src.logging_config import log
+
 
 def load_data(filepath: str) -> pd.DataFrame:
     """
@@ -57,11 +59,11 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     
     if len(df) == 0:
         raise ValueError("Все строки удалены при предобработке")
-    
+
     removed_count = original_len - len(df)
     if removed_count > 0:
-        print(f"Удалено {removed_count} строк ({100*removed_count/original_len:.1f}%)")
-    
+        log.info(f"Удалено {removed_count} строк ({100*removed_count/original_len:.1f}%)")
+
     return df
 
 

@@ -1,0 +1,61 @@
+# Git
+.git
+.gitignore
+
+# Environment
+.env
+.env.local
+.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/results*/
+notebooks/final_eval/
+notebooks/logs*/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Documentation
+*.md
+!requirements.txt
+
+# Tests
+tests/
+
+# Check scripts
+check_*.py
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Data
+data/
+
+# Models (будут скачаны/созданы при обучении)
+models/

@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Inference сервис - работает 24/7
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference
+    container_name: ecommerce-inference
+    ports:
+      - "8000:8000"
+    volumes:
+      # Монтируем модели для доступа к реестру
+      - ./models:/app/models
+      # Монтируем данные (опционально)
+      - ./data:/app/data
+    env_file:
+      - .env
+    environment:
+      - INFERENCE_HOST=0.0.0.0
+      - INFERENCE_PORT=8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ecommerce-network
+
+  # Training сервис - запускается по требованию
+  training:
+    build:
+      context: .
+      dockerfile: Dockerfile.training
+    container_name: ecommerce-training
+    volumes:
+      # Монтируем данные для обучения
+      - ./data:/app/data
+      # Монтируем модели для сохранения в реестр
+      - ./models:/app/models
+    env_file:
+      - .env
+    profiles:
+      - train  # Запуск: docker compose --profile train up training
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge

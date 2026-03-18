@@ -1,230 +1,148 @@
-# E-commerce Text Classification
+# E-commerce Classification ML Service
 
-Проект по классификации текстовых описаний товаров электронной коммерции по категориям.
+ML-сервис для классификации товаров электронной коммерции по категориям.
 
-**✅ Все замечания устранены:**
-1. Дубликаты удаляются ДО сплита на train/test
-2. WordNetLemmatizer использует pos_tag() для правильной лемматизации
-3. nltk файлы скачиваются один раз при импорте модуля
-4. Все выборки унифицированы: Train=17792, Val=4449, Test=5561
-5. Baseline пересчитан на тех же данных для корректного сравнения
-6. Удалён весь неиспользуемый код
+## 🚀 Быстрый старт
 
-## 📋 Постановка задачи
+### 1. Установка зависимостей
 
-**Цель:** Построить модель машинного обучения для автоматической классификации товаров по категориям на основе текстового описания.
+```bash
+# Установка uv (если не установлен)
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-**Таргет:** `category` — категория товара (4 класса):
-- `Household` — товары для дома (19 313 примеров, 38.3%)
-- `Books` — книги (11 820 примеров, 23.4%)
-- `Electronics` — электроника (10 621 пример, 21.1%)
-- `Clothing & Accessories` — одежда и аксессуары (8 671 пример, 17.2%)
+# Клонирование репозитория
+git clone <repository-url>
+cd ecommerce-classification
 
-**Признаки:**
-- `description` — текстовое описание товара (длина от 4 до 50 791 символов, медиана 488 символов)
-
-**Метрики качества:**
-- Primary: **F1-macro** (усреднённый F1-score по всем классам)
-- Secondary: Accuracy, Precision-macro, Recall-macro, F1-weighted
-
----
-
-## 🔍 EDA (Exploratory Data Analysis)
-
-### Основные выводы анализа данных
-
-1. **Дисбаланс классов:**
-   - Классы распределены неравномерно: от 17% до 38%
-   - Требуется использование стратификации при разбиении и метрики F1-macro
-
-2. **Распределение длин текстов:**
-   - Сильно скошенное распределение с длинным хвостом
-   - Медианная длина: ~488 символов
-   - Есть аномально длинные описания (до 50K символов)
-   - Тексты по категориям имеют разную среднюю длину
-
-3. **Качество данных:**
-   - 1 пропуск в колонке description (0.002%)
-   - Дубликаты присутствуют, требуют удаления
-   - Текст содержит HTML-теги, URL, специальные символы
-
-4. **Лингвистические особенности:**
-   - Тексты на английском языке
-   - Много повторяющихся маркетинговых фраз
-   - Встречаются технические спецификации в описаниях
-
-### Преобразования, необходимые для данных
-
-| Преобразование | Обоснование |
-|---------------|-------------|
-| Удаление дубликатов | Избежание утечки данных при обучении |
-| Удаление пропусков | Минимальное влияние (1 запись) |
-| Приведение к нижнему регистру | Унификация токенов |
-| Удаление HTML-тегов и URL | Шум в данных |
-| Удаление пунктуации и цифр | Уменьшение размерности |
-| Удаление стоп-слов | Фокус на содержательных словах |
-| Лемматизация | Объединение форм одного слова |
-| Ограничение длины текста | Обработка выбросов (max_length) |
-
----
-
-## 📊 Baseline (`02_baseline.ipynb`)
-
-### Построенные модели
-
-| Модель | Описание | F1-macro | F1-weighted | Accuracy |
-|--------|----------|----------|-------------|----------|
-| **Linear SVM** | LinearSVC + TF-IDF | **0.9498** | **0.9501** | **0.9502** |
-| **Logistic Regression** | TF-IDF + L2 регуляризация | 0.9452 | 0.9453 | 0.9453 |
-| **Naive Bayes** | MultinomialNB + TF-IDF | 0.9283 | 0.9279 | 0.9281 |
-| **Random Forest** | 100 деревьев + TF-IDF | 0.9205 | 0.9202 | 0.9203 |
-
-**🏆 Лучшая baseline-модель:** Linear SVM (F1-macro = 0.9498)
-
-### Матрица ошибок (Baseline)
-
-Наибольшее количество ошибок:
-- Household ↔ Clothing (похожие описания декора и текстиля)
-- Electronics ↔ Household (бытовая техника vs декор)
-
----
-
-## 🚀 Improvements (`03_improvements.ipynb`)
-
-### Применённые улучшения
-
-**Примечание:** Результаты в `03_improvements.ipynb` показывают меньшие значения из-за:
-- Уменьшения train выборки (17792 вместо ~22000)
-- Изменений в лемматизации (pos_tag вместо universal)
-- Отсутствия кросс-валидации при обучении
-
-**Актуальные результаты из `04_hyperparam_tuning.ipynb` (с CV):**
-
-| № | Улучшение | Описание | F1-macro (Test) | Δ vs Baseline |
-|---|-----------|----------|-----------------|---------------|
-| 0 | **Baseline (Linear SVM)** | TF-IDF + LinearSVC | 0.9498 | — |
-| 1 | **Очистка текста** | Удаление HTML, URL, спецсимволов | 0.9460 | -0.0038 |
-| 2 | **Лемматизация + стоп-слова** | WordNetLemmatizer + NLTK stopwords | 0.9471 | -0.0027 |
-| 3 | **N-граммы (1,2)** | TF-IDF с биграммами | 0.9492 | -0.0006 |
-| 4 | **Class weights** | Балансировка весов классов | 0.9491 | -0.0007 |
-| 5 | **SMOTE** | Синтетическая балансировка | 0.9488 | -0.0010 |
-| 6 | **Длина текста** | Feature engineering | 0.9490 | -0.0008 |
-| 7 | **Ensemble** | VotingClassifier (LR + SVM + NB) | 0.9536 | +0.0038 |
-| 8 | **Chi-2 отбор** | Отбор 5000 лучших признаков | 0.9450 | -0.0048 |
-| 9 | **Mutual Information** | Отбор признаков через MI | 0.9422 | -0.0076 |
-| 10 | **LightGBM** | Градиентный бустинг | 0.9347 | -0.0151 |
-| 11 | **Sentence-BERT** | Эмбеддинги all-MiniLM-L6-v2 | 0.9315 | -0.0183 |
-| 12 | **DistilBERT Fine-Tuning** | Предобученная трансформер-модель | 0.9628 | +0.0130 |
-
-**Лучшие результаты после тюнинга (с CV):**
-
-| Модель | F1-macro (Test) | Δ vs Baseline |
-|--------|-----------------|---------------|
-| **DistilBERT (tuned)** | **0.9609** | **+0.0111** |
-| **Linear SVM (tuned)** | **0.9566** | **+0.0068** |
-| **Logistic Regression (tuned)** | **0.9503** | **+0.0005** |
-
-### Итоговые результаты
-
-| Модель | F1-macro | Accuracy | Время | Примечание |
-|--------|----------|----------|-------|------------|
-| Baseline (Linear SVM) | 0.9498 | 0.9502 | ~2 мин | Без тюнинга |
-| + Тюнинг (DistilBERT) | **0.9609** | **0.9610** | ~9 мин | 🏆 Лучший F1 |
-| + Тюнинг (Linear SVM) | **0.9566** | **0.9570** | ~1.5 мин | Лучший баланс |
-| + Тюнинг (LogReg) | **0.9503** | **0.9500** | ~1.5 мин | Быстрая |
-| + Тюнинг (LightGBM) | **0.9370** | **0.9370** | ~8 мин | -0.0128 (хуже) |
-
-**Важно:** Результаты в `03_improvements.ipynb` (без тюнинга) показывают меньшие значения из-за отсутствия кросс-валидации. После подбора гиперпараметров в `04_hyperparam_tuning.ipynb` DistilBERT показывает лучший результат (F1=0.9609, +1.11%).
-
-### Улучшения, не давшие значительного прироста (без тюнинга)
-
-**Примечание:** После подбора гиперпараметров DistilBERT и Linear SVM показывают прирост.
-
-| Улучшение (без тюнинга) | Δ F1 | Объяснение | После тюнинга |
-|-----------|------|------------|---------------|
-| Очистка текста | -0.0038 | Базовая очистка без подбора параметров | +0.0005 (LogReg) |
-| Лемматизация + стоп-слова | -0.0027 | pos_tag работает не идеально | +0.0068 (SVM) |
-| LightGBM | -0.0151 | Без подбора гиперпараметров | -0.0128 (всё ещё хуже) |
-| Sentence-BERT эмбеддинги | -0.0183 | Модель all-MiniLM-L6-v2 хуже | N/A |
-| Mutual Information отбор | -0.0076 | Потеря информации при отборе | N/A |
-| Chi-2 отбор признаков | -0.0048 | Слишком агрессивный отбор | N/A |
-
----
-
-## ⚙️ Hyperparameter Tuning (`04_hyperparam_tuning.ipynb`)
-
-### Метод тюнинга
-
-Использован **RandomizedSearchCV** с кросс-валидацией (3-5 folds).
-
-### Результаты тюнинга
-
-**Важно:** После подбора гиперпараметров лучшие модели показывают прирост от +0.05% до +1.17%.
-
-| Модель | F1-macro (CV) | F1-macro (Test) | F1-macro (Train) | Δ vs Baseline | Время |
-|--------|---------------|-----------------|------------------|---------------|-------|
-| **DistilBERT** | **0.9648** | **0.9609** | ~0.96 | **+0.0111** | 9.35 мин |
-| **Linear SVM** | 0.9523 | **0.9566** | ~0.99 | **+0.0068** | 1.47 мин |
-| **Logistic Regression** | 0.9458 | **0.9503** | ~0.99 | **+0.0005** | 1.47 мин |
-| LightGBM (CPU) | 0.9331 | 0.9370 | ~0.94 | -0.0128 | 7.67 мин |
-
-**Примечание:** Метрики на тесте выше CV из-за того, что:
-1. Удалены дубликаты ДО сплита (теперь нет утечки данных)
-2. Размеры выборок унифицированы: Train=17792, Val=4449, Test=5561
-3. CV метрика вычисляется на кросс-валидации по train, а тестовая — на отдельной hold-out выборке
-
-**Важно:** Результаты в `03_improvements.ipynb` показывают меньшие значения из-за изменений в предобработке (лемматизация с pos_tag) и уменьшения размера train выборки. После тюнинга в `04_hyperparam_tuning.ipynb` DistilBERT показывает лучший результат.
-
-### 🏆 Победители по категориям
-
-| Категория | Модель | F1-macro | Время |
-|-----------|--------|----------|-------|
-| **🥇 Лучший F1** | **DistilBERT** | **0.9609** | 9.35 мин |
-| **🥈 2-е место** | Linear SVM | 0.9566 | 1.47 мин |
-| **🥉 3-е место** | Logistic Regression | 0.9503 | 1.47 мин |
-
-### Оптимальные гиперпараметры
-
-#### Linear SVM (🏆 Лучшая модель)
-
-```python
-{
-    'tfidf__max_features': 15000,
-    'tfidf__ngram_range': (1, 1),
-    'clf__C': 1.0
-}
+# Создание виртуального окружения и установка зависимостей
+uv venv
+uv sync
 ```
 
-#### Logistic Regression
+### 2. Настройка конфигурации
 
-```python
-{
-    'tfidf__max_features': 10000,
-    'tfidf__ngram_range': (1, 2),
-    'clf__C': 5.0
-}
+```bash
+# Копирование шаблона
+cp .env.example .env
+
+# Отредактируйте .env при необходимости
 ```
 
-#### DistilBERT
+### 3. Запуск через Docker Compose
 
-```python
-{
-    'learning_rate': 5e-5,
-    'batch_size': 32,
-    'num_epochs': 4
-}
+```bash
+# Inference сервис (24/7)
+docker compose up -d inference
+
+# Training сервис (по требованию)
+docker compose --profile train up training
 ```
 
-### Прирост от тюнинга
+### 4. Локальный запуск
 
-| Этап | F1-macro | Δ |
-|------|----------|---|
-| Baseline (Linear SVM) | 0.9498 | — |
-| После тюнинга (DistilBERT) | **0.9609** | **+0.0111** |
-| После тюнинга (Linear SVM) | **0.9566** | **+0.0068** |
-| После тюнинга (Logistic Regression) | **0.9503** | **+0.0005** |
+```bash
+# Обучение модели (SVM)
+python -m src.training.main
 
-**Вывод:** DistilBERT показывает лучший прирост +1.11%, Linear SVM +0.68%, Logistic Regression +0.05%. LightGBM показывает отрицательный прирост -1.28%.
+# Inference сервер
+uvicorn src.inference.main:app --reload
+```
+
+---
+
+## 📡 API Endpoints
+
+### Health Check
+```bash
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/health"
+```
+
+### Предсказание
+```powershell
+$body = @{description = "Sony wireless headphones"} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/predict" -Method POST -ContentType "application/json" -Body $body
+```
+
+### Смена модели
+```powershell
+$body = @{version = "v1"} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/change-model" -Method POST -ContentType "application/json" -Body $body
+```
+
+### Swagger UI
+Откройте в браузере: **http://127.0.0.1:8000/docs**
+
+---
+
+## 🏗️ Архитектура
+
+```
+ecommerce-classification/
+├── src/
+│   ├── preprocessing/     # Общий препроцессинг текста
+│   ├── inference/         # FastAPI сервис (24/7)
+│   └── training/          # Обучение моделей (по запросу)
+├── models/registry/       # Реестр версий моделей
+├── tests/                 # Юнит-тесты
+├── docker-compose.yml     # Оркестрация
+└── pyproject.toml         # Зависимости
+```
+
+### Inference Сервис
+- **FastAPI** приложение
+- REST API для предсказаний
+- Health check endpoint
+- Смена версии модели
+
+### Training Сервис
+- Запускается по требованию
+- Обучает новую модель
+- Валидирует метрики (F1 >= 0.95)
+- Регистрирует в реестре
+- Автоматически останавливается
+
+---
+
+## 📊 Поддерживаемые модели
+
+| Модель | Время обучения | F1-macro |
+|--------|----------------|----------|
+| Linear SVM | ~2 мин | 0.95+ |
+| Logistic Regression | ~2 мин | 0.95+ |
+| DistilBERT | ~10 мин | 0.96+ |
+
+---
+
+## 🧪 Тестирование
+
+```bash
+# Запуск тестов
+uv run pytest tests/ -v
+
+# С покрытием
+uv run pytest tests/ --cov=src --cov-report=html
+```
+
+---
+
+## 🔧 Конфигурация
+
+Параметры в `.env`:
+
+```env
+# Model
+MODEL_TYPE=svm              # svm, distilbert, logistic
+MIN_F1_THRESHOLD=0.95       # Минимальный порог F1
+
+# Inference
+INFERENCE_HOST=0.0.0.0
+INFERENCE_PORT=8000
+
+# Training
+TRAIN_BATCH_SIZE=32
+TRAIN_EPOCHS=4
+TRAIN_LEARNING_RATE=5e-5
+```
 
 ---
 
@@ -233,112 +151,72 @@
 ```
 ecommerce-classification/
 ├── data/
-│   └── ecommerceDataset.csv      # Исходные данные
+│   ├── raw/                      # Исходные данные (не в git)
+│   └── processed/                # Обработанные данные (не в git)
+├── models/
+│   └── registry/                 # Реестр моделей (не в git)
 ├── src/
-│   ├── __init__.py
-│   ├── data_loader.py            # Загрузка и предобработка данных
-│   └── text_transformers.py      # Кастомные трансформеры текста
-├── notebooks/
-│   ├── 01_eda.ipynb              # Разведочный анализ данных
-│   ├── 02_baseline.ipynb         # Базовые модели
-│   ├── 03_improvements.ipynb     # Улучшения и фич-инжиниринг
-│   └── 04_hyperparam_tuning.ipynb # Оптимизация гиперпараметров
-├── models/                        # Сохранённые модели
-│   ├── best_lr_pipeline.pkl
-│   ├── best_svm_pipeline.pkl
-│   ├── best_lgb_model.pkl
-│   └── best_distilbert/
-├── .gitignore
-├── requirements.txt
+│   ├── config.py                 # Конфигурация
+│   ├── logging_config.py         # Логирование
+│   ├── preprocessing/
+│   │   └── text_cleaner.py       # Очистка текста
+│   ├── inference/
+│   │   ├── main.py               # FastAPI приложение
+│   │   ├── models.py             # Pydantic модели
+│   │   └── model_loader.py       # Загрузка моделей
+│   └── training/
+│       ├── main.py               # Скрипт обучения
+│       ├── train.py              # Логика тренировки
+│       ├── validate.py           # Валидация метрик
+│       ├── deploy.py             # Деплой в реестр
+│       └── model_registry.py     # Реестр моделей
+├── tests/
+│   ├── test_preprocessing.py
+│   ├── test_inference.py
+│   └── test_training.py
+├── .env.example
+├── pyproject.toml
+├── docker-compose.yml
+├── Dockerfile.inference
+├── Dockerfile.training
 └── README.md
 ```
 
 ---
 
-## 🛠️ Установка и запуск
+## 🔄 Workflow
 
-```bash
-# Клонирование репозитория
-git clone <repository-url>
-cd ecommerce-classification
-
-# Создание виртуального окружения
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
-
-# Установка зависимостей
-pip install -r requirements.txt
-
-# Запуск Jupyter
-jupyter notebook
 ```
-
-### Использование лучшей модели
-
-```python
-import pickle
-from src.data_loader import load_data, preprocess_data
-
-# Загрузка лучшей модели (Linear SVM)
-with open('models/best_svm_pipeline.pkl', 'rb') as f:
-    best_model = pickle.load(f)
-
-# Предсказание
-predictions = best_model.predict(['New product description...'])
-print(predictions)
-
-# Или загрузка DistilBERT для максимального качества
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-model = AutoModelForSequenceClassification.from_pretrained('models/best_distilbert')
-tokenizer = AutoTokenizer.from_pretrained('models/best_distilbert')
+1. docker compose up -d inference     # Запуск inference
+                                      ↓
+2. docker compose --profile train up training  # Обучение
+                                      ↓
+3. Training:
+   - Загружает данные
+   - Обучает модель
+   - Валидирует метрики
+   - Регистрирует в реестре
+                                      ↓
+4. Inference подгружает новую модель
 ```
 
 ---
 
-## 📈 Итоговые результаты
+## 📦 Зависимости
 
-**🏆 Финальная модель:** DistilBERT с оптимизированными гиперпараметрами
+Основные:
+- `fastapi` - REST API
+- `uvicorn` - ASGI сервер
+- `pydantic` - Валидация данных
+- `scikit-learn` - ML модели
+- `pandas` - Обработка данных
+- `nltk` - NLP
+- `pytest` - Тестирование
 
-| Метрика | Значение |
-|---------|----------|
-| **F1-macro** | **0.9609** |
-| Accuracy | 0.9610 |
-| Precision-macro | 0.9605 |
-| Recall-macro | 0.9610 |
-
-### Сравнение с baseline
-
-| Модель | F1-macro | Прирост |
-|--------|----------|---------|
-| Baseline (Linear SVM) | 0.9498 | — |
-| **Final (DistilBERT tuned)** | **0.9609** | **+1.17%** |
-| Final (Linear SVM tuned) | **0.9566** | +0.72% |
-| Final (Logistic Regression tuned) | **0.9503** | +0.05% |
-
-### Рекомендации по использованию
-
-| Сценарий | Модель | Обоснование |
-|----------|--------|-------------|
-| **Продакшен** | Linear SVM | Лучший баланс F1 (0.9566) + быстрое обучение (1.47 мин) + быстрый инференс |
-| **Компромисс** | Logistic Regression | Почти тот же F1 (0.9503) + ещё быстрее (1.47 мин) + интерпретируемость |
-| **Максимум качества** | DistilBERT | Лучший F1 (0.9609), но требует GPU для инференса и 9.35 мин на тюнинг |
+Полный список в `pyproject.toml`.
 
 ---
 
-## 📝 История исправлений
+## 📝 License
 
-| Дата | Исправление |
-|------|-------------|
-| Март 2026 | Удаление дубликатов ДО сплита (была утечка данных) |
-| Март 2026 | WordNetLemmatizer с pos_tag() (правильная лемматизация) |
-| Март 2026 | nltk файлы скачиваются 1 раз при импорте |
-| Март 2026 | Унифицированы размеры: все ноутбуки Train=17792, Val=4449, Test=5561 |
-| Март 2026 | Baseline пересчитан на тех же данных для корректного сравнения |
-| Март 2026 | Удалён неиспользуемый код: model_utils.py, visualization.py, models.py, feature_selection.py, embeddings.py |
-| Март 2026 | Обновлены метрики в README согласно актуальным результатам запусков |
-| Март 2026 | **Лучшая модель после тюнинга: DistilBERT (F1=0.9609, +1.17%)** |
-
-
-
-
+MIT
