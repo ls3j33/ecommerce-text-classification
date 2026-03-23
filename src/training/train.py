@@ -154,11 +154,22 @@ class ModelTrainer:
         """Обучение Linear SVM модели."""
         log.info("Обучение Linear SVM...")
 
-        # Препроцессинг
-        X_train_cleaned = self.preprocess(X_train)
+        from src.preprocessing.text_cleaner import TextCleaner
 
         model = Pipeline(
             [
+                (
+                    "cleaner",
+                    TextCleaner(
+                        lowercase=True,
+                        remove_html=True,
+                        remove_url=True,
+                        remove_digits=True,
+                        remove_punctuation=True,
+                        remove_stopwords=False,
+                        lemmatize=False,
+                    ),
+                ),
                 (
                     "tfidf",
                     TfidfVectorizer(
@@ -180,7 +191,7 @@ class ModelTrainer:
             ]
         )
 
-        model.fit(X_train_cleaned, y_train)
+        model.fit(X_train, y_train)  # ✅ Сырой текст, очистка внутри Pipeline
         log.info("Linear SVM обучена")
 
         return model
@@ -192,11 +203,22 @@ class ModelTrainer:
         log.info("Обучение Logistic Regression...")
 
         from sklearn.linear_model import LogisticRegression
-
-        X_train_cleaned = self.preprocess(X_train)
+        from src.preprocessing.text_cleaner import TextCleaner
 
         model = Pipeline(
             [
+                (
+                    "cleaner",
+                    TextCleaner(
+                        lowercase=True,
+                        remove_html=True,
+                        remove_url=True,
+                        remove_digits=True,
+                        remove_punctuation=True,
+                        remove_stopwords=False,
+                        lemmatize=False,
+                    ),
+                ),
                 (
                     "tfidf",
                     TfidfVectorizer(
@@ -220,7 +242,7 @@ class ModelTrainer:
             ]
         )
 
-        model.fit(X_train_cleaned, y_train)
+        model.fit(X_train, y_train)  # ✅ Сырой текст, очистка внутри Pipeline
         log.info("Logistic Regression обучена")
 
         return model

@@ -193,10 +193,23 @@ class ModelManager:
     def _predict_transformer(self, text: str) -> tuple[str, float]:
         """Предсказание transformer моделью."""
         import torch
+        from src.preprocessing.text_cleaner import TextCleaner
+
+        # ✅ Очистка текста (идентично training)
+        cleaner = TextCleaner(
+            lowercase=True,
+            remove_html=True,
+            remove_url=True,
+            remove_digits=True,
+            remove_punctuation=True,
+            remove_stopwords=False,
+            lemmatize=False,
+        )
+        text_cleaned = cleaner.clean_text(text)
 
         # Токенизация
         inputs = self._tokenizer(
-            text,
+            text_cleaned,  # ✅ Очищенный текст
             return_tensors="pt",
             truncation=True,
             padding=True,
